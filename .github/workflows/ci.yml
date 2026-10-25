@@ -37,7 +37,7 @@ jobs:
       - name: Build image
         run: docker build -t baidu-t5-proxy:ci .
 
-      - name: Smoke test image (full chain: proxy -> fake node -> http server)
+      - name: "Smoke test image (full chain: proxy -> fake node -> http server)"
         run: |
           set -euo pipefail
           # --help 必须输出 usage，防止占位/坏二进制混进镜像
