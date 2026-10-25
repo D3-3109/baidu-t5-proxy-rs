@@ -61,11 +61,11 @@ mkdir -p /opt/baidu-t5-proxy && cd /opt/baidu-t5-proxy
 docker run -d --name baidu-t5-proxy --restart always \
   -v ./nodes.txt:/etc/baidu-t5-proxy/nodes.txt:ro \
   -p 127.0.0.1:10001-10014:10001-10014 \
-  ghcr.io/d3-3109/baidu-t5-proxy:latest
+  ghcr.io/d3-3109/baidu-t5-proxy-rs:latest
 
 # 体检节点（容器内自带 fake-baidu 也可用于本地调试）
 docker run --rm -v ./nodes.txt:/etc/baidu-t5-proxy/nodes.txt:ro \
-  ghcr.io/d3-3109/baidu-t5-proxy:latest --check
+  ghcr.io/d3-3109/baidu-t5-proxy-rs:latest --check
 ```
 
 或使用 compose（`docker compose up -d`）：
@@ -73,7 +73,7 @@ docker run --rm -v ./nodes.txt:/etc/baidu-t5-proxy/nodes.txt:ro \
 ```yaml
 services:
   baidu-t5-proxy:
-    image: ghcr.io/d3-3109/baidu-t5-proxy:latest
+    image: ghcr.io/d3-3109/baidu-t5-proxy-rs:latest
     restart: always
     volumes:
       - ./nodes.txt:/etc/baidu-t5-proxy/nodes.txt:ro
