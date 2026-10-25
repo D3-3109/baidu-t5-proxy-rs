@@ -1,6 +1,6 @@
 [package]
 name = "baidu-t5-proxy"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 rust-version = "1.70"
 description = "Port-per-node egress proxy for Baidu T5 relays (Rust rewrite of baidu_t5_proxy.py)"

@@ -115,6 +115,28 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  verify-image:
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify pushed image
+        run: |
+          set -euo pipefail
+          docker pull ghcr.io/${{ github.repository }}:latest
+          # 二进制必须是真身：--help 输出 usage
+          docker run --rm ghcr.io/${{ github.repository }}:latest --help \
+            | grep -q "usage: baidu-t5-proxy"
+          # 容器必须能常驻（防占位二进制静默退出回归）
+          printf '10001 127.0.0.1 44444\n' > /tmp/nodes.txt
+          docker run -d --name verify --network host \
+            -v /tmp/nodes.txt:/etc/baidu-t5-proxy/nodes.txt:ro \
+            ghcr.io/${{ github.repository }}:latest
+          sleep 5
+          [ "$(docker inspect -f '{{.State.Running}}' verify)" = "true" ] \
+            || { docker logs verify; exit 1; }
+          docker logs verify | grep -q "1 port(s) up"
+          docker rm -f verify >/dev/null
+
   release:
     needs: binaries
     runs-on: ubuntu-latest

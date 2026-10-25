@@ -34,5 +34,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build image (validation only)
+      - name: Build image
         run: docker build -t baidu-t5-proxy:ci .
+
+      - name: Smoke test image (full chain: proxy -> fake node -> http server)
+        run: |
+          set -euo pipefail
+          # --help 必须输出 usage，防止占位/坏二进制混进镜像
+          docker run --rm baidu-t5-proxy:ci --help | grep -q "usage: baidu-t5-proxy"
+
+          # 全链路：curl -> 代理(10001) -> fake 节点(44444) -> 本地 http(45999)
+          printf '10001 127.0.0.1 44444\n' > nodes-smoke.txt
+          python3 -m http.server 45999 --bind 127.0.0.1 >/dev/null 2>&1 &
+          docker run -d --name fake --network host \
+            --entrypoint /usr/local/bin/fake-baidu \
+            baidu-t5-proxy:ci 127.0.0.1 44444
+          docker run -d --name proxy --network host \
+            -v "$PWD/nodes-smoke.txt:/etc/baidu-t5-proxy/nodes.txt:ro" \
+            baidu-t5-proxy:ci
+          sleep 3
+          [ "$(docker inspect -f '{{.State.Running}}' proxy)" = "true" ] \
+            || { docker logs proxy; exit 1; }
+          docker logs proxy | grep -q "1 port(s) up"
+          curl -s -m 10 -x socks5h://127.0.0.1:10001 http://127.0.0.1:45999/ \
+            | grep -q "Directory listing for"
+          curl -s -m 10 -x http://127.0.0.1:10001 http://127.0.0.1:45999/ \
+            | grep -q "Directory listing for"
+          docker rm -f proxy fake >/dev/null

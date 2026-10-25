@@ -14,10 +14,12 @@ RUN mkdir -p src/bin tests \
     && cargo build --release \
     && rm -rf src
 
-# 真实源码
+# 真实源码。COPY 保留的 mtime 早于占位编译时间，cargo 会误判源码未变，
+# 因此必须先清理本包产物强制重编（依赖仍走缓存）。
 COPY src ./src
 COPY tests ./tests
-RUN cargo build --release \
+RUN cargo clean -p baidu-t5-proxy \
+    && cargo build --release \
     && cp target/release/baidu-t5-proxy target/release/fake-baidu /usr/local/bin/
 
 # ---- 运行阶段：distroless 静态镜像，非 root 运行 ----
