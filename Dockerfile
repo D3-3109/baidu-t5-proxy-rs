@@ -18,8 +18,14 @@ RUN mkdir -p src/bin tests \
 # 因此必须先清理本包产物强制重编（依赖仍走缓存）。
 COPY src ./src
 COPY tests ./tests
-RUN cargo clean -p baidu-t5-proxy \
-    && cargo build --release \
+RUN set -x \
+    && echo "=== src/main.rs head ===" && head -c 100 src/main.rs; echo \
+    && echo "=== src/lib.rs head ===" && head -c 100 src/lib.rs; echo \
+    && echo "=== clean ===" && cargo clean -p baidu-t5-proxy -v; \
+    echo "=== build ===" && cargo build --release \
+    && echo "=== check ===" \
+    && { grep -ac "usage: baidu-t5-proxy" target/release/baidu-t5-proxy || echo "NO USAGE -> PLACEHOLDER"; } \
+    && ls -la target/release/baidu-t5-proxy target/release/fake-baidu \
     && cp target/release/baidu-t5-proxy target/release/fake-baidu /usr/local/bin/
 
 # ---- 运行阶段：distroless 静态镜像，非 root 运行 ----
