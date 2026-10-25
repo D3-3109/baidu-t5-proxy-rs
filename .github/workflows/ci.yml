@@ -40,7 +40,13 @@ jobs:
       - name: "Smoke test image (full chain: proxy -> fake node -> http server)"
         run: |
           set -euo pipefail
+          set -x
           # --help 必须输出 usage，防止占位/坏二进制混进镜像
+          docker run --rm baidu-t5-proxy:ci --help || true
+          docker create --name smokechk baidu-t5-proxy:ci >/dev/null
+          docker cp smokechk:/usr/local/bin/baidu-t5-proxy /tmp/proxy-bin
+          grep -ac "usage: baidu-t5-proxy" /tmp/proxy-bin || echo "PLACEHOLDER BINARY!"
+          docker rm -f smokechk >/dev/null
           docker run --rm baidu-t5-proxy:ci --help | grep -q "usage: baidu-t5-proxy"
 
           # 全链路：curl -> 代理(10001) -> fake 节点(44444) -> 本地 http(45999)
