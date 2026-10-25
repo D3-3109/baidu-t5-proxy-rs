@@ -1,0 +1,28 @@
+[package]
+name = "baidu-t5-proxy"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.70"
+description = "Port-per-node egress proxy for Baidu T5 relays (Rust rewrite of baidu_t5_proxy.py)"
+license = "MIT"
+
+[lib]
+name = "baidu_t5_proxy"
+path = "src/lib.rs"
+
+[[bin]]
+name = "baidu-t5-proxy"
+path = "src/main.rs"
+
+[[bin]]
+name = "fake-baidu"
+path = "src/bin/fake_baidu.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "time", "macros", "signal"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

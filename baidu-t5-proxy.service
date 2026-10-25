@@ -1,0 +1,28 @@
+# systemd 单元，安装方法（先 cargo build --release，再把两个文件放到位）：
+#   cp target/release/baidu-t5-proxy /opt/baidu-t5-proxy/
+#   cp nodes.txt /opt/baidu-t5-proxy/
+#   cp baidu-t5-proxy.service /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now baidu-t5-proxy
+#   journalctl -u baidu-t5-proxy -f
+
+[Unit]
+Description=Baidu T5 egress proxy (port-per-node)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/opt/baidu-t5-proxy/baidu-t5-proxy --config /opt/baidu-t5-proxy/nodes.txt
+Restart=always
+RestartSec=5
+# token 或 UA 更新时无需改文件：
+#Environment=T5_AUTH=1951164069
+#Environment=T5_UA=okhttp/3.11.0 ...
+
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
