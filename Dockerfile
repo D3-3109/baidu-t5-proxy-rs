@@ -14,18 +14,19 @@ RUN mkdir -p src/bin tests \
     && cargo build --release \
     && rm -rf src
 
-# 真实源码。COPY 保留的 mtime 早于占位编译时间，cargo 会误判源码未变，
-# 因此必须先清理本包产物强制重编（依赖仍走缓存）。
+# 真实源码。占位编译的 cargo 指纹会让真实源码被误判为"最新"
+# （clean -p 实测也清不掉），因此直接删除本包产物与指纹强制重编。
 COPY src ./src
 COPY tests ./tests
 RUN set -x \
-    && echo "=== src/main.rs head ===" && head -c 100 src/main.rs; echo \
-    && echo "=== src/lib.rs head ===" && head -c 100 src/lib.rs; echo \
-    && echo "=== clean ===" && cargo clean -p baidu-t5-proxy -v; \
-    echo "=== build ===" && cargo build --release \
-    && echo "=== check ===" \
-    && { grep -ac "usage: baidu-t5-proxy" target/release/baidu-t5-proxy || echo "NO USAGE -> PLACEHOLDER"; } \
-    && ls -la target/release/baidu-t5-proxy target/release/fake-baidu \
+    && ls target/release/.fingerprint/ | head -30 \
+    && rm -f target/release/baidu-t5-proxy target/release/fake-baidu \
+    && rm -rf target/release/.fingerprint/baidu-t5-proxy-* \
+              target/release/.fingerprint/baidu_t5_proxy-* \
+              target/release/.fingerprint/fake-baidu-* \
+              target/release/.fingerprint/fake_baidu-* \
+    && cargo build --release \
+    && grep -aq "usage: baidu-t5-proxy" target/release/baidu-t5-proxy \
     && cp target/release/baidu-t5-proxy target/release/fake-baidu /usr/local/bin/
 
 # ---- 运行阶段：distroless 静态镜像，非 root 运行 ----
