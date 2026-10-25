@@ -9,6 +9,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Binary identity check (--help should print usage)
+        run: |
+          echo "=== docker run --help ==="
+          docker run --rm ghcr.io/d3-3109/baidu-t5-proxy-rs:latest --help 2>&1 | head -5
+          echo "=== extract binary and grep for usage string ==="
+          docker create --name t5x ghcr.io/d3-3109/baidu-t5-proxy-rs:latest >/dev/null
+          docker cp t5x:/usr/local/bin/baidu-t5-proxy /tmp/proxy-bin
+          ls -la /tmp/proxy-bin
+          file /tmp/proxy-bin
+          grep -ac "usage: baidu-t5-proxy" /tmp/proxy-bin || echo "USAGE STRING NOT FOUND -> placeholder binary"
+          docker rm -f t5x >/dev/null
+
       - name: Scenario 1 - valid nodes.txt, no ports
         run: |
           printf '10001 180.101.50.208\n' > nodes.txt
@@ -20,27 +32,3 @@ jobs:
           docker inspect -f 'state={{.State.Status}} exit={{.State.ExitCode}} restarts={{.RestartCount}}' t5s1 || true
           docker logs t5s1 2>&1 | tail -5 || true
           docker rm -f t5s1 || true
-
-      - name: Scenario 2 - valid nodes.txt + ports published
-        run: |
-          docker run -d --name t5s2 --restart always \
-            -v "$PWD/nodes.txt:/etc/baidu-t5-proxy/nodes.txt:ro" \
-            -p 127.0.0.1:10001:10001 \
-            ghcr.io/d3-3109/baidu-t5-proxy-rs:latest
-          sleep 8
-          docker ps -a --filter name=t5s2 --format '{{.Status}}'
-          docker inspect -f 'state={{.State.Status}} exit={{.State.ExitCode}} restarts={{.RestartCount}}' t5s2 || true
-          docker logs t5s2 2>&1 | tail -5 || true
-          docker rm -f t5s2 || true
-
-      - name: Scenario 3 - missing nodes.txt (docker creates dir)
-        run: |
-          mkdir -p /tmp/empty-mount
-          docker run -d --name t5s3 --restart always \
-            -v /tmp/empty-mount:/etc/baidu-t5-proxy/nodes.txt:ro \
-            ghcr.io/d3-3109/baidu-t5-proxy-rs:latest
-          sleep 8
-          docker ps -a --filter name=t5s3 --format '{{.Status}}'
-          docker inspect -f 'state={{.State.Status}} exit={{.State.ExitCode}} restarts={{.RestartCount}}' t5s3 || true
-          docker logs t5s3 2>&1 | tail -5 || true
-          docker rm -f t5s3 || true
